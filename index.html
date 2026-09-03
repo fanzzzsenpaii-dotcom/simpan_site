@@ -265,7 +265,7 @@
       </div>
     </header>
 
-    <!-- FORM UPLOAD -->
+    <!-- UPLOAD SECTION -->
     <section>
       <div class="section-title">
         <i class="fa-solid fa-upload" style="color: var(--accent);"></i> Unggah Media Baru
@@ -287,7 +287,7 @@
 
     <div class="divider"></div>
 
-    <!-- GALERI PUBLIK -->
+    <!-- GALLERY SECTION -->
     <section class="gallery-header">
       <div class="section-title">
         <i class="fa-solid fa-photo-film" style="color: var(--accent);"></i> Galeri Media Publik
@@ -303,7 +303,7 @@
   </div>
 
   <script>
-    // ISIKAN KREDENSIAL SUPABASE KAMU
+    // MASUKKAN URL & KEY SUPABASE KAMU DI SINI
     const SUPABASE_URL = 'https://URL_PROJECT_KAMU.supabase.co';
     const SUPABASE_KEY = 'KEY_ANON_PUBLIC_KAMU';
     
@@ -316,9 +316,9 @@
     const searchInput = document.getElementById('search-input');
     let allMediaData = [];
 
-    fileInput.addEventListener('change', () => {
+    fileInput.addEventListener('change', function() {
       if (fileInput.files.length > 0) {
-        fileName.textContent = `Terpilih: ${fileInput.files[0].name}`;
+        fileName.textContent = 'Terpilih: ' + fileInput.files[0].name;
         uploadBtn.disabled = false;
       } else {
         fileName.textContent = 'Pilih gambar, MP3, atau MP4 dari perangkatmu';
@@ -326,7 +326,7 @@
       }
     });
 
-    uploadBtn.addEventListener('click', async () => {
+    uploadBtn.addEventListener('click', async function() {
       const file = fileInput.files[0];
       if (!file) return;
 
@@ -334,15 +334,13 @@
       uploadBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengunggah...';
 
       const fileExt = file.name.split('.').pop();
-      const filePath = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = Date.now() + '_' + Math.random().toString(36).substring(2) + '.' + fileExt;
 
-      // UPLOAD DENGAN FITUR UPSERT: TRUE (CEGAH FILE ALREADY EXISTS)
+      // Upload ke Storage Bucket 'media'
       const { data: storageData, error: storageError } = await supabaseClient
         .storage
         .from('media')
-        .upload(filePath, file, {
-          upsert: true
-        });
+        .upload(filePath, file, { upsert: true });
 
       if (storageError) {
         alert('Gagal mengunggah file: ' + storageError.message);
@@ -351,6 +349,7 @@
         return;
       }
 
+      // Ambil Public URL
       const { data: publicUrlData } = supabaseClient
         .storage
         .from('media')
@@ -358,6 +357,7 @@
 
       const publicUrl = publicUrlData.publicUrl;
 
+      // Simpan ke Database
       const { error: dbError } = await supabaseClient
         .from('media_files')
         .insert([
@@ -395,52 +395,53 @@
     }
 
     function renderMedia(items) {
-      if (items.length === 0) {
+      if (!items || items.length === 0) {
         mediaGrid.innerHTML = '<p style="color: var(--text-muted);">Tidak ada media ditemukan.</p>';
         return;
       }
 
       mediaGrid.innerHTML = '';
 
-      items.forEach(item => {
+      items.forEach(function(item) {
         const card = document.createElement('div');
         card.className = 'media-card';
 
         let previewElement = '';
-        if (item.file_type.startsWith('image/')) {
-          previewElement = `<img src="${item.file_url}" class="media-preview" alt="${item.file_name}" loading="lazy">`;
-        } else if (item.file_type.startsWith('video/')) {
-          previewElement = `<video src="${item.file_url}" class="media-preview" controls></video>`;
-        } else if (item.file_type.startsWith('audio/')) {
-          previewElement = `<div class="media-preview"><audio src="${item.file_url}" controls></audio></div>`;
+        const fType = item.file_type || '';
+
+        if (fType.indexOf('image/') === 0) {
+          previewElement = '<img src="' + item.file_url + '" class="media-preview" alt="' + item.file_name + '" loading="lazy">';
+        } else if (fType.indexOf('video/') === 0) {
+          previewElement = '<video src="' + item.file_url + '" class="media-preview" controls></video>';
+        } else if (fType.indexOf('audio/') === 0) {
+          previewElement = '<div class="media-preview"><audio src="' + item.file_url + '" controls></audio></div>';
         } else {
-          previewElement = `<div class="media-preview">Media</div>`;
+          previewElement = '<div class="media-preview">Media</div>';
         }
 
-        card.innerHTML = `
-          ${previewElement}
-          <div class="media-body">
-            <div class="file-title" title="${item.file_name}">${item.file_name}</div>
-            <button class="share-btn" onclick="copyLink('${item.file_url}')">
-              <i class="fa-regular fa-copy"></i> Salin Tautan
-            </button>
-          </div>
-        `;
+        card.innerHTML = 
+          previewElement +
+          '<div class="media-body">' +
+            '<div class="file-title" title="' + item.file_name + '">' + item.file_name + '</div>' +
+            '<button class="share-btn" onclick="copyLink(\'' + item.file_url + '\')">' +
+              '<i class="fa-regular fa-copy"></i> Salin Tautan' +
+            '</button>' +
+          '</div>';
 
         mediaGrid.appendChild(card);
       });
     }
 
-    searchInput.addEventListener('input', (e) => {
+    searchInput.addEventListener('input', function(e) {
       const keyword = e.target.value.toLowerCase();
-      const filtered = allMediaData.filter(item => 
-        item.file_name.toLowerCase().includes(keyword)
-      );
+      const filtered = allMediaData.filter(function(item) {
+        return item.file_name.toLowerCase().indexOf(keyword) !== -1;
+      });
       renderMedia(filtered);
     });
 
     function copyLink(url) {
-      navigator.clipboard.writeText(url).then(() => {
+      navigator.clipboard.writeText(url).then(function() {
         alert('Tautan media berhasil disalin!');
       });
     }
@@ -448,110 +449,16 @@
     fetchPublicMedia();
 
     // PROTEKSI PEMBLOKIRAN KLIK KANAN DAN DEVTOOLS
-    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+    });
 
     document.onkeydown = function(e) {
       if (e.keyCode === 123) return false;
-      if (e.ctrlKey && e.shiftKey && e.keyCode === 'I'.charCodeAt(0)) return false;
-      if (e.ctrlKey && e.shiftKey && e.keyCode === 'J'.charCodeAt(0)) return false;
-      if (e.ctrlKey && e.keyCode === 'U'.charCodeAt(0)) return false;
-      if (e.ctrlKey && e.keyCode === 'S'.charCodeAt(0)) return false;
-    };
-  </script>
-</body>
-</html>
-i> Unggah Sekarang';
-    });
-
-    // ==========================================
-    // 3. LOGIKA GALERI MEDIA
-    // ==========================================
-    async function fetchPublicMedia() {
-      mediaGrid.innerHTML = '<p style="color: var(--text-muted);">Memuat galeri...</p>';
-
-      const { data, error } = await supabaseClient
-        .from('media_files')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        mediaGrid.innerHTML = '<p style="color: var(--text-muted);">Gagal mengambil data media.</p>';
-        return;
-      }
-
-      allMediaData = data;
-      renderMedia(allMediaData);
-    }
-
-    function renderMedia(items) {
-      if (items.length === 0) {
-        mediaGrid.innerHTML = '<p style="color: var(--text-muted);">Tidak ada media ditemukan.</p>';
-        return;
-      }
-
-      mediaGrid.innerHTML = '';
-
-      items.forEach(item => {
-        const card = document.createElement('div');
-        card.className = 'media-card';
-
-        let previewElement = '';
-        if (item.file_type.startsWith('image/')) {
-          previewElement = `<img src="${item.file_url}" class="media-preview" alt="${item.file_name}" loading="lazy">`;
-        } else if (item.file_type.startsWith('video/')) {
-          previewElement = `<video src="${item.file_url}" class="media-preview" controls></video>`;
-        } else if (item.file_type.startsWith('audio/')) {
-          previewElement = `<div class="media-preview"><audio src="${item.file_url}" controls></audio></div>`;
-        } else {
-          previewElement = `<div class="media-preview">Media</div>`;
-        }
-
-        card.innerHTML = `
-          ${previewElement}
-          <div class="media-body">
-            <div class="file-title" title="${item.file_name}">${item.file_name}</div>
-            <button class="share-btn" onclick="copyLink('${item.file_url}')">
-              <i class="fa-regular fa-copy"></i> Salin Tautan
-            </button>
-          </div>
-        `;
-
-        mediaGrid.appendChild(card);
-      });
-    }
-
-    // Filter Cari
-    searchInput.addEventListener('input', (e) => {
-      const keyword = e.target.value.toLowerCase();
-      const filtered = allMediaData.filter(item => 
-        item.file_name.toLowerCase().includes(keyword)
-      );
-      renderMedia(filtered);
-    });
-
-    // Salin Tautan Link
-    function copyLink(url) {
-      navigator.clipboard.writeText(url).then(() => {
-        alert('Tautan media berhasil disalin!');
-      });
-    }
-
-    // Jalankan pertama kali
-    fetchPublicMedia();
-
-    // ==========================================
-    // 4. PROTEKSI ANTI-CLONE / INSPECT ELEMENT
-    // ==========================================
-    // Matikan Klik Kanan
-    document.addEventListener('contextmenu', e => e.preventDefault());
-
-    // Matikan Shortcut Keyboard DevTools
-    document.onkeydown = function(e) {
-      if (e.keyCode === 123) return false; // F12
-      if (e.ctrlKey && e.shiftKey && e.keyCode === 'I'.charCodeAt(0)) return false; // Ctrl+Shift+I
-      if (e.ctrlKey && e.shiftKey && e.keyCode === 'J'.charCodeAt(0)) return false; // Ctrl+Shift+J
-      if (e.ctrlKey && e.keyCode === 'U'.charCodeAt(0)) return false; // Ctrl+U
-      if (e.ctrlKey && e.keyCode === 'S'.charCodeAt(0)) return false; // Ctrl+S
+      if (e.ctrlKey && e.shiftKey && e.keyCode === 73) return false;
+      if (e.ctrlKey && e.shiftKey && e.keyCode === 74) return false;
+      if (e.ctrlKey && e.keyCode === 85) return false;
+      if (e.ctrlKey && e.keyCode === 83) return false;
     };
   </script>
 </body>
