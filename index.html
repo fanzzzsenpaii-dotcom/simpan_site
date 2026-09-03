@@ -7,6 +7,8 @@
   
   <!-- Supabase JS Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Cloudflare Turnstile Script (Anti-Bot / Anti-DDoS) -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <!-- Google Fonts & FontAwesome Icons -->
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -128,6 +130,13 @@
       margin-top: 12px;
       font-size: 0.85rem;
       color: var(--text-muted);
+    }
+
+    /* Container untuk Turnstile CAPTCHA */
+    .turnstile-container {
+      display: flex;
+      justify-content: center;
+      margin: 10px 0;
     }
 
     .upload-btn {
@@ -279,6 +288,11 @@
           <div id="file-name">Pilih gambar, MP3, atau MP4 dari perangkatmu</div>
         </div>
 
+        <!-- CLOUDFLARE TURNSTILE WIDGET (ANTI-BOT / ANTI-DDOS) -->
+        <div class="turnstile-container">
+          <div class="cf-turnstile" data-sitekey="0x4AAAAAAEl_Ml-CitScNY4X" data-callback="onTurnstileSuccess" data-expired-callback="onTurnstileExpired"></div>
+        </div>
+
         <button class="upload-btn" id="upload-btn" disabled>
           <i class="fa-solid fa-cloud-arrow-up"></i> Unggah Sekarang
         </button>
@@ -306,7 +320,6 @@
 
   <!-- SUPABASE & APPLICATION LOGIC -->
   <script>
-    // 1. MASUKKAN SUPABASE URL DAN ANON KEY KAMU DI SINI
     const SUPABASE_URL = 'https://ypggmvkgnjeflbkxooot.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlwZ2dtdmtnbmplZmxia3hvb290Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg0MTUwMTMsImV4cCI6MjEwMzk5MTAxM30.KZ6cRJeJEbnvAarR8x9YCU_fjAbGSsIQ1uzOsum_8-4';
 
@@ -318,24 +331,54 @@
     const mediaGrid = document.getElementById('media-grid');
     const searchInput = document.getElementById('search-input');
 
+    let isCaptchaPassed = false;
+    let lastUploadTime = 0; // Untuk Rate-Limiting sederhana di client side
     let allMediaData = [];
+
+    // Callback saat Turnstile Verifikasi Manusia Berhasil
+    function onTurnstileSuccess(token) {
+      isCaptchaPassed = true;
+      checkUploadReady();
+    }
+
+    // Callback saat Turnstile Expired
+    function onTurnstileExpired() {
+      isCaptchaPassed = false;
+      uploadBtn.disabled = true;
+    }
+
+    // Cek apakah file sudah dipilih DAN captcha sudah lulus
+    function checkUploadReady() {
+      if (fileInput.files.length > 0 && isCaptchaPassed) {
+        uploadBtn.disabled = false;
+      } else {
+        uploadBtn.disabled = true;
+      }
+    }
 
     // Deteksi Pilihan File
     fileInput.addEventListener('change', () => {
       const file = fileInput.files[0];
       if (file) {
         fileNameDisplay.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
-        uploadBtn.disabled = false;
       } else {
         fileNameDisplay.textContent = 'Pilih gambar, MP3, atau MP4 dari perangkatmu';
-        uploadBtn.disabled = true;
       }
+      checkUploadReady();
     });
 
-    // Proses Upload File ke Supabase
+    // Proses Upload File
     uploadBtn.addEventListener('click', async () => {
       const file = fileInput.files[0];
-      if (!file) return;
+      if (!file || !isCaptchaPassed) return;
+
+      // Anti-DDoS / Rate Limiting Client Side (Mencegah spam klik berulang-ulang cepat)
+      const now = Date.now();
+      if (now - lastUploadTime < 5000) { // Cooldown 5 detik per upload
+        alert('Tunggu 5 detik sebelum mengunggah file berikutnya.');
+        return;
+      }
+      lastUploadTime = now;
 
       uploadBtn.disabled = true;
       uploadBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengunggah...';
@@ -344,7 +387,7 @@
         const fileExt = file.name.split('.').pop();
         const cleanFileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-        // Upload ke Supabase Storage (Bucket: media)
+        // Upload ke Supabase Storage
         const { data: storageData, error: storageError } = await supabaseClient
           .storage
           .from('media')
@@ -352,21 +395,19 @@
 
         if (storageError) throw storageError;
 
-        // Ambil Public URL File
+        // Ambil Public URL
         const { data: urlData } = supabaseClient
           .storage
           .from('media')
           .getPublicUrl(cleanFileName);
 
-        const publicUrl = urlData.publicUrl;
-
-        // Simpan Metadata ke Tabel Database (Tabel: media_files)
+        // Simpan Metadata ke Tabel
         const { error: dbError } = await supabaseClient
           .from('media_files')
           .insert([
             {
               file_name: file.name,
-              file_url: publicUrl,
+              file_url: urlData.publicUrl,
               file_type: file.type
             }
           ]);
@@ -376,20 +417,25 @@
         alert('Berhasil mengunggah media!');
         fileInput.value = '';
         fileNameDisplay.textContent = 'Pilih gambar, MP3, atau MP4 dari perangkatmu';
+        
+        // Reset Captcha Turnstile
+        turnstile.reset();
+        isCaptchaPassed = false;
         uploadBtn.disabled = true;
         uploadBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Unggah Sekarang';
 
-        // Refresh Galeri
         fetchMedia();
 
       } catch (err) {
         alert('Gagal mengunggah: ' + err.message);
-        uploadBtn.disabled = false;
+        turnstile.reset();
+        isCaptchaPassed = false;
+        uploadBtn.disabled = true;
         uploadBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Unggah Sekarang';
       }
     });
 
-    // Fetch Galeri Media dari Database
+    // Fetch Galeri Media
     async function fetchMedia() {
       mediaGrid.innerHTML = '<div style="color: var(--text-muted);">Memuat galeri...</div>';
 
@@ -407,7 +453,7 @@
       renderMedia(allMediaData);
     }
 
-    // Render HTML untuk Galeri
+    // Render HTML Galeri
     function renderMedia(items) {
       if (items.length === 0) {
         mediaGrid.innerHTML = '<div style="color: var(--text-muted);">Belum ada media yang diunggah.</div>';
@@ -441,29 +487,23 @@
       }).join('');
     }
 
-    // Fitur Salin Link
     function copyLink(url) {
       navigator.clipboard.writeText(url);
       alert('Tautan file berhasil disalin!');
     }
 
-    // Fitur Live Search
     searchInput.addEventListener('input', (e) => {
       const query = e.target.value.toLowerCase();
       const filtered = allMediaData.filter(item => item.file_name.toLowerCase().includes(query));
       renderMedia(filtered);
     });
 
-    // Load Galeri saat Halaman Pertama Dimuat
     fetchMedia();
   </script>
 
-  <!-- SCRIPT PROTEKSI (ANTI-CLONE / ANTI-INSPECT) -->
+  <!-- SCRIPT PROTEKSI UI -->
   <script>
-    // Matikan Klik Kanan
     document.addEventListener('contextmenu', event => event.preventDefault());
-
-    // Matikan Tombol F12 & Shortkey DevTools (Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U)
     document.onkeydown = function (e) {
       if (e.keyCode == 123 || 
          (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || 
