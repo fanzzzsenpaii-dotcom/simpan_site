@@ -295,90 +295,103 @@
 
       <div class="search-box">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input type="text" id="search-input" placeholder="Cari nama media...">
+        <input type="text" id="search-input" placeholder="Cari media berdasarkan nama...">
       </div>
-
-      <div class="media-grid" id="media-grid"></div>
     </section>
+
+    <div class="media-grid" id="media-grid">
+      <!-- Media Items dinamik dari JavaScript -->
+    </div>
   </div>
 
+  <!-- SUPABASE & APPLICATION LOGIC -->
   <script>
-    // MASUKKAN URL & KEY SUPABASE KAMU DI SINI
+    // 1. MASUKKAN SUPABASE URL DAN ANON KEY KAMU DI SINI
     const SUPABASE_URL = 'https://ypggmvkgnjeflbkxooot.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlwZ2dtdmtnbmplZmxia3hvb290Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg0MTUwMTMsImV4cCI6MjEwMzk5MTAxM30.KZ6cRJeJEbnvAarR8x9YCU_fjAbGSsIQ1uzOsum_8-4';
-    
+
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     const fileInput = document.getElementById('file-input');
-    const fileName = document.getElementById('file-name');
+    const fileNameDisplay = document.getElementById('file-name');
     const uploadBtn = document.getElementById('upload-btn');
     const mediaGrid = document.getElementById('media-grid');
     const searchInput = document.getElementById('search-input');
+
     let allMediaData = [];
 
-    fileInput.addEventListener('change', function() {
-      if (fileInput.files.length > 0) {
-        fileName.textContent = 'Terpilih: ' + fileInput.files[0].name;
+    // Deteksi Pilihan File
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (file) {
+        fileNameDisplay.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
         uploadBtn.disabled = false;
       } else {
-        fileName.textContent = 'Pilih gambar, MP3, atau MP4 dari perangkatmu';
+        fileNameDisplay.textContent = 'Pilih gambar, MP3, atau MP4 dari perangkatmu';
         uploadBtn.disabled = true;
       }
     });
 
-    uploadBtn.addEventListener('click', async function() {
+    // Proses Upload File ke Supabase
+    uploadBtn.addEventListener('click', async () => {
       const file = fileInput.files[0];
       if (!file) return;
 
       uploadBtn.disabled = true;
       uploadBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengunggah...';
 
-      const fileExt = file.name.split('.').pop();
-      const filePath = Date.now() + '_' + Math.random().toString(36).substring(2) + '.' + fileExt;
+      try {
+        const fileExt = file.name.split('.').pop();
+        const cleanFileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-      // Upload ke Storage Bucket 'media'
-      const { data: storageData, error: storageError } = await supabaseClient
-        .storage
-        .from('media')
-        .upload(filePath, file, { upsert: true });
+        // Upload ke Supabase Storage (Bucket: media)
+        const { data: storageData, error: storageError } = await supabaseClient
+          .storage
+          .from('media')
+          .upload(cleanFileName, file);
 
-      if (storageError) {
-        alert('Gagal mengunggah file: ' + storageError.message);
+        if (storageError) throw storageError;
+
+        // Ambil Public URL File
+        const { data: urlData } = supabaseClient
+          .storage
+          .from('media')
+          .getPublicUrl(cleanFileName);
+
+        const publicUrl = urlData.publicUrl;
+
+        // Simpan Metadata ke Tabel Database (Tabel: media_files)
+        const { error: dbError } = await supabaseClient
+          .from('media_files')
+          .insert([
+            {
+              file_name: file.name,
+              file_url: publicUrl,
+              file_type: file.type
+            }
+          ]);
+
+        if (dbError) throw dbError;
+
+        alert('Berhasil mengunggah media!');
+        fileInput.value = '';
+        fileNameDisplay.textContent = 'Pilih gambar, MP3, atau MP4 dari perangkatmu';
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Unggah Sekarang';
+
+        // Refresh Galeri
+        fetchMedia();
+
+      } catch (err) {
+        alert('Gagal mengunggah: ' + err.message);
         uploadBtn.disabled = false;
         uploadBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Unggah Sekarang';
-        return;
       }
-
-      // Ambil Public URL
-      const { data: publicUrlData } = supabaseClient
-        .storage
-        .from('media')
-        .getPublicUrl(filePath);
-
-      const publicUrl = publicUrlData.publicUrl;
-
-      // Simpan ke Database
-      const { error: dbError } = await supabaseClient
-        .from('media_files')
-        .insert([
-          { file_name: file.name, file_url: publicUrl, file_type: file.type }
-        ]);
-
-      if (dbError) {
-        alert('Gagal menyimpan metadata: ' + dbError.message);
-      } else {
-        alert('File berhasil diunggah!');
-        fileInput.value = '';
-        fileName.textContent = 'Pilih gambar, MP3, atau MP4 dari perangkatmu';
-        fetchPublicMedia();
-      }
-
-      uploadBtn.disabled = true;
-      uploadBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Unggah Sekarang';
     });
 
-    async function fetchPublicMedia() {
-      mediaGrid.innerHTML = '<p style="color: var(--text-muted);">Memuat galeri...</p>';
+    // Fetch Galeri Media dari Database
+    async function fetchMedia() {
+      mediaGrid.innerHTML = '<div style="color: var(--text-muted);">Memuat galeri...</div>';
 
       const { data, error } = await supabaseClient
         .from('media_files')
@@ -386,7 +399,7 @@
         .order('created_at', { ascending: false });
 
       if (error) {
-        mediaGrid.innerHTML = '<p style="color: var(--text-muted);">Gagal mengambil data media.</p>';
+        mediaGrid.innerHTML = '<div style="color: red;">Gagal memuat media.</div>';
         return;
       }
 
@@ -394,72 +407,71 @@
       renderMedia(allMediaData);
     }
 
+    // Render HTML untuk Galeri
     function renderMedia(items) {
-      if (!items || items.length === 0) {
-        mediaGrid.innerHTML = '<p style="color: var(--text-muted);">Tidak ada media ditemukan.</p>';
+      if (items.length === 0) {
+        mediaGrid.innerHTML = '<div style="color: var(--text-muted);">Belum ada media yang diunggah.</div>';
         return;
       }
 
-      mediaGrid.innerHTML = '';
+      mediaGrid.innerHTML = items.map(item => {
+        let previewHtml = '';
 
-      items.forEach(function(item) {
-        const card = document.createElement('div');
-        card.className = 'media-card';
-
-        let previewElement = '';
-        const fType = item.file_type || '';
-
-        if (fType.indexOf('image/') === 0) {
-          previewElement = '<img src="' + item.file_url + '" class="media-preview" alt="' + item.file_name + '" loading="lazy">';
-        } else if (fType.indexOf('video/') === 0) {
-          previewElement = '<video src="' + item.file_url + '" class="media-preview" controls></video>';
-        } else if (fType.indexOf('audio/') === 0) {
-          previewElement = '<div class="media-preview"><audio src="' + item.file_url + '" controls></audio></div>';
+        if (item.file_type.startsWith('image/')) {
+          previewHtml = `<img src="${item.file_url}" class="media-preview" alt="${item.file_name}" loading="lazy">`;
+        } else if (item.file_type.startsWith('video/')) {
+          previewHtml = `<video src="${item.file_url}" class="media-preview" controls></video>`;
+        } else if (item.file_type.startsWith('audio/')) {
+          previewHtml = `<div class="media-preview"><audio src="${item.file_url}" controls style="width: 90%;"></audio></div>`;
         } else {
-          previewElement = '<div class="media-preview">Media</div>';
+          previewHtml = `<div class="media-preview"><i class="fa-solid fa-file-lines fa-3x" style="color: var(--text-muted)"></i></div>`;
         }
 
-        card.innerHTML = 
-          previewElement +
-          '<div class="media-body">' +
-            '<div class="file-title" title="' + item.file_name + '">' + item.file_name + '</div>' +
-            '<button class="share-btn" onclick="copyLink(\'' + item.file_url + '\')">' +
-              '<i class="fa-regular fa-copy"></i> Salin Tautan' +
-            '</button>' +
-          '</div>';
-
-        mediaGrid.appendChild(card);
-      });
+        return `
+          <div class="media-card">
+            ${previewHtml}
+            <div class="media-body">
+              <div class="file-title" title="${item.file_name}">${item.file_name}</div>
+              <button class="share-btn" onclick="copyLink('${item.file_url}')">
+                <i class="fa-solid fa-link"></i> Salin Tautan
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
     }
 
-    searchInput.addEventListener('input', function(e) {
-      const keyword = e.target.value.toLowerCase();
-      const filtered = allMediaData.filter(function(item) {
-        return item.file_name.toLowerCase().indexOf(keyword) !== -1;
-      });
+    // Fitur Salin Link
+    function copyLink(url) {
+      navigator.clipboard.writeText(url);
+      alert('Tautan file berhasil disalin!');
+    }
+
+    // Fitur Live Search
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase();
+      const filtered = allMediaData.filter(item => item.file_name.toLowerCase().includes(query));
       renderMedia(filtered);
     });
 
-    function copyLink(url) {
-      navigator.clipboard.writeText(url).then(function() {
-        alert('Tautan media berhasil disalin!');
-      });
-    }
+    // Load Galeri saat Halaman Pertama Dimuat
+    fetchMedia();
+  </script>
 
-    fetchPublicMedia();
+  <!-- SCRIPT PROTEKSI (ANTI-CLONE / ANTI-INSPECT) -->
+  <script>
+    // Matikan Klik Kanan
+    document.addEventListener('contextmenu', event => event.preventDefault());
 
-    // PROTEKSI PEMBLOKIRAN KLIK KANAN DAN DEVTOOLS
-    document.addEventListener('contextmenu', function(e) {
-      e.preventDefault();
-    });
-
-    document.onkeydown = function(e) {
-      if (e.keyCode === 123) return false;
-      if (e.ctrlKey && e.shiftKey && e.keyCode === 73) return false;
-      if (e.ctrlKey && e.shiftKey && e.keyCode === 74) return false;
-      if (e.ctrlKey && e.keyCode === 85) return false;
-      if (e.ctrlKey && e.keyCode === 83) return false;
+    // Matikan Tombol F12 & Shortkey DevTools (Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U)
+    document.onkeydown = function (e) {
+      if (e.keyCode == 123 || 
+         (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || 
+         (e.ctrlKey && e.keyCode == 85)) {
+        return false;
+      }
     };
   </script>
+
 </body>
 </html>
