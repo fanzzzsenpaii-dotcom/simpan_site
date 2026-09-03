@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Upload Media Baru - Showcase</title>
+  <title>ShareMedia - Galeri & Upload Media</title>
   
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -33,21 +33,24 @@
       padding: 30px 20px;
       display: flex;
       justify-content: center;
+      /* Mencegah seleksi teks jika ingin ekstra proteksi */
+      user-select: none;
+      -webkit-user-select: none;
     }
 
     .container {
       width: 100%;
-      max-width: 700px;
+      max-width: 900px;
       display: flex;
       flex-direction: column;
-      gap: 25px;
+      gap: 30px;
     }
 
-    /* Header Navigasi */
+    /* Header Utama */
     header {
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
       background: var(--card-bg);
       padding: 20px 25px;
       border-radius: 16px;
@@ -61,49 +64,39 @@
     }
 
     .brand i {
-      font-size: 1.5rem;
+      font-size: 1.6rem;
       color: var(--accent);
     }
 
     .brand h1 {
-      font-size: 1.3rem;
+      font-size: 1.4rem;
       font-weight: 700;
     }
 
-    /* Tombol Pindah Halaman ke Galeri Publik */
-    .btn-goto-public {
-      background: rgba(99, 102, 241, 0.15);
-      color: #818cf8;
-      text-decoration: none;
-      padding: 10px 18px;
-      border-radius: 10px;
+    /* Section Box Upload (SimpanSite) */
+    .section-title {
+      font-size: 1.1rem;
       font-weight: 600;
-      font-size: 0.85rem;
-      display: inline-flex;
+      margin-bottom: 12px;
+      display: flex;
       align-items: center;
       gap: 8px;
-      transition: background 0.2s;
     }
 
-    .btn-goto-public:hover {
-      background: rgba(99, 102, 241, 0.3);
-    }
-
-    /* Form Upload Box */
     .upload-card {
       background: var(--card-bg);
       border: 1px solid var(--border);
       border-radius: 16px;
-      padding: 30px;
+      padding: 25px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 15px;
     }
 
     .upload-box {
       border: 2px dashed var(--border);
       border-radius: 14px;
-      padding: 35px 20px;
+      padding: 30px 20px;
       text-align: center;
       transition: border-color 0.2s;
     }
@@ -118,11 +111,11 @@
       gap: 8px;
       background: var(--accent);
       color: white;
-      padding: 12px 24px;
+      padding: 10px 22px;
       border-radius: 10px;
       cursor: pointer;
       font-weight: 600;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       transition: background 0.2s;
     }
 
@@ -133,7 +126,7 @@
     #file-input { display: none; }
 
     #file-name {
-      margin-top: 15px;
+      margin-top: 12px;
       font-size: 0.85rem;
       color: var(--text-muted);
     }
@@ -143,7 +136,7 @@
       background: #10b981;
       color: white;
       border: none;
-      padding: 14px;
+      padding: 12px;
       border-radius: 10px;
       font-weight: 600;
       font-size: 0.95rem;
@@ -160,6 +153,110 @@
       color: var(--text-muted);
       cursor: not-allowed;
     }
+
+    /* Divider Garis Pembatas */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      width: 100%;
+    }
+
+    /* Section Galeri (Publik) */
+    .gallery-header {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .search-box {
+      position: relative;
+      width: 100%;
+    }
+
+    .search-box input {
+      width: 100%;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      padding: 12px 20px 12px 42px;
+      border-radius: 12px;
+      color: var(--text-main);
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    .search-box input:focus {
+      border-color: var(--accent);
+    }
+
+    .search-box i {
+      position: absolute;
+      left: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+    }
+
+    /* Grid Galeri Media */
+    .media-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .media-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .media-preview {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .media-body {
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .file-title {
+      font-size: 0.88rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .share-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .share-btn:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
   </style>
 </head>
 <body>
@@ -170,28 +267,48 @@
         <i class="fa-solid fa-cloud-arrow-up"></i>
         <h1>ShareMedia</h1>
       </div>
-      <a href="publik.html" class="btn-goto-public">
-        <i class="fa-solid fa-images"></i> Lihat Galeri Publik
-      </a>
     </header>
 
-    <div class="upload-card">
-      <div class="upload-box">
-        <label for="file-input" class="file-label">
-          <i class="fa-solid fa-paperclip"></i> Pilih File Media
-        </label>
-        <input type="file" id="file-input" accept="image/*,audio/*,video/*">
-        <div id="file-name">Pilih gambar, MP3, atau MP4 dari perangkatmu</div>
+    <section>
+      <div class="section-title">
+        <i class="fa-solid fa-upload" style="color: var(--accent);"></i> Unggah Media Baru
+      </div>
+      <div class="upload-card">
+        <div class="upload-box">
+          <label for="file-input" class="file-label">
+            <i class="fa-solid fa-paperclip"></i> Pilih File
+          </label>
+          <input type="file" id="file-input" accept="image/*,audio/*,video/*">
+          <div id="file-name">Pilih gambar, MP3, atau MP4 dari perangkatmu</div>
+        </div>
+
+        <button class="upload-btn" id="upload-btn" disabled>
+          <i class="fa-solid fa-cloud-arrow-up"></i> Unggah Sekarang
+        </button>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <section class="gallery-header">
+      <div class="section-title">
+        <i class="fa-solid fa-photo-film" style="color: var(--accent);"></i> Galeri Media Publik
       </div>
 
-      <button class="upload-btn" id="upload-btn" disabled>
-        <i class="fa-solid fa-upload"></i> Unggah Sekarang
-      </button>
-    </div>
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="search-input" placeholder="Cari nama media...">
+      </div>
+
+      <div class="media-grid" id="media-grid">
+        </div>
+    </section>
   </div>
 
   <script>
-    // MASUKKAN URL DAN KEY SUPABASE KAMU DI SINI
+    // ==========================================
+    // 1. KONFIGURASI SUPABASE (Isi Data Kamu)
+    // ==========================================
     const SUPABASE_URL = 'https://ypggmvkgnjeflbkxooot.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlwZ2dtdmtnbmplZmxia3hvb290Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg0MTUwMTMsImV4cCI6MjEwMzk5MTAxM30.KZ6cRJeJEbnvAarR8x9YCU_fjAbGSsIQ1uzOsum_8-4';
     
@@ -200,10 +317,16 @@
     const fileInput = document.getElementById('file-input');
     const fileName = document.getElementById('file-name');
     const uploadBtn = document.getElementById('upload-btn');
+    const mediaGrid = document.getElementById('media-grid');
+    const searchInput = document.getElementById('search-input');
+    let allMediaData = [];
 
+    // ==========================================
+    // 2. LOGIKA UPLOAD MEDIA
+    // ==========================================
     fileInput.addEventListener('change', () => {
       if (fileInput.files.length > 0) {
-        fileName.textContent = `File terpilih: ${fileInput.files[0].name}`;
+        fileName.textContent = `Terpilih: ${fileInput.files[0].name}`;
         uploadBtn.disabled = false;
       } else {
         fileName.textContent = 'Pilih gambar, MP3, atau MP4 dari perangkatmu';
@@ -221,7 +344,7 @@
       const fileExt = file.name.split('.').pop();
       const filePath = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
 
-      // 1. Upload File ke Storage
+      // Upload ke Storage Supabase 'media'
       const { data: storageData, error: storageError } = await supabaseClient
         .storage
         .from('media')
@@ -230,11 +353,11 @@
       if (storageError) {
         alert('Gagal mengunggah file: ' + storageError.message);
         uploadBtn.disabled = false;
-        uploadBtn.innerHTML = '<i class="fa-solid fa-upload"></i> Unggah Sekarang';
+        uploadBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Unggah Sekarang';
         return;
       }
 
-      // 2. Dapatkan Link Publik
+      // Ambil Link Publik
       const { data: publicUrlData } = supabaseClient
         .storage
         .from('media')
@@ -242,7 +365,7 @@
 
       const publicUrl = publicUrlData.publicUrl;
 
-      // 3. Simpan Metadata ke Tabel media_files
+      // Simpan Metadata ke Tabel Database 'media_files'
       const { error: dbError } = await supabaseClient
         .from('media_files')
         .insert([
@@ -255,11 +378,103 @@
         alert('File berhasil diunggah!');
         fileInput.value = '';
         fileName.textContent = 'Pilih gambar, MP3, atau MP4 dari perangkatmu';
+        fetchPublicMedia(); // Reload Galeri Otomatis setelah upload
       }
 
       uploadBtn.disabled = true;
-      uploadBtn.innerHTML = '<i class="fa-solid fa-upload"></i> Unggah Sekarang';
+      uploadBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Unggah Sekarang';
     });
+
+    // ==========================================
+    // 3. LOGIKA GALERI MEDIA
+    // ==========================================
+    async function fetchPublicMedia() {
+      mediaGrid.innerHTML = '<p style="color: var(--text-muted);">Memuat galeri...</p>';
+
+      const { data, error } = await supabaseClient
+        .from('media_files')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        mediaGrid.innerHTML = '<p style="color: var(--text-muted);">Gagal mengambil data media.</p>';
+        return;
+      }
+
+      allMediaData = data;
+      renderMedia(allMediaData);
+    }
+
+    function renderMedia(items) {
+      if (items.length === 0) {
+        mediaGrid.innerHTML = '<p style="color: var(--text-muted);">Tidak ada media ditemukan.</p>';
+        return;
+      }
+
+      mediaGrid.innerHTML = '';
+
+      items.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'media-card';
+
+        let previewElement = '';
+        if (item.file_type.startsWith('image/')) {
+          previewElement = `<img src="${item.file_url}" class="media-preview" alt="${item.file_name}" loading="lazy">`;
+        } else if (item.file_type.startsWith('video/')) {
+          previewElement = `<video src="${item.file_url}" class="media-preview" controls></video>`;
+        } else if (item.file_type.startsWith('audio/')) {
+          previewElement = `<div class="media-preview"><audio src="${item.file_url}" controls></audio></div>`;
+        } else {
+          previewElement = `<div class="media-preview">Media</div>`;
+        }
+
+        card.innerHTML = `
+          ${previewElement}
+          <div class="media-body">
+            <div class="file-title" title="${item.file_name}">${item.file_name}</div>
+            <button class="share-btn" onclick="copyLink('${item.file_url}')">
+              <i class="fa-regular fa-copy"></i> Salin Tautan
+            </button>
+          </div>
+        `;
+
+        mediaGrid.appendChild(card);
+      });
+    }
+
+    // Filter Cari
+    searchInput.addEventListener('input', (e) => {
+      const keyword = e.target.value.toLowerCase();
+      const filtered = allMediaData.filter(item => 
+        item.file_name.toLowerCase().includes(keyword)
+      );
+      renderMedia(filtered);
+    });
+
+    // Salin Tautan Link
+    function copyLink(url) {
+      navigator.clipboard.writeText(url).then(() => {
+        alert('Tautan media berhasil disalin!');
+      });
+    }
+
+    // Jalankan pertama kali
+    fetchPublicMedia();
+
+    // ==========================================
+    // 4. PROTEKSI ANTI-CLONE / INSPECT ELEMENT
+    // ==========================================
+    // Matikan Klik Kanan
+    document.addEventListener('contextmenu', e => e.preventDefault());
+
+    // Matikan Shortcut Keyboard DevTools
+    document.onkeydown = function(e) {
+      if (e.keyCode === 123) return false; // F12
+      if (e.ctrlKey && e.shiftKey && e.keyCode === 'I'.charCodeAt(0)) return false; // Ctrl+Shift+I
+      if (e.ctrlKey && e.shiftKey && e.keyCode === 'J'.charCodeAt(0)) return false; // Ctrl+Shift+J
+      if (e.ctrlKey && e.keyCode === 'U'.charCodeAt(0)) return false; // Ctrl+U
+      if (e.ctrlKey && e.keyCode === 'S'.charCodeAt(0)) return false; // Ctrl+S
+    };
   </script>
 </body>
 </html>
