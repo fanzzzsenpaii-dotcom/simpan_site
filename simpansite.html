@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload Media Baru - Showcase</title>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    :root {
+      --bg-color: #0b0f19;
+      --card-bg: #111827;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --border: #1f2937;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      padding: 30px 20px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 700px;
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+    }
+
+    /* Header Navigasi */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card-bg);
+      padding: 20px 25px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand i {
+      font-size: 1.5rem;
+      color: var(--accent);
+    }
+
+    .brand h1 {
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+    /* Tombol Pindah Halaman ke Galeri Publik */
+    .btn-goto-public {
+      background: rgba(99, 102, 241, 0.15);
+      color: #818cf8;
+      text-decoration: none;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+
+    .btn-goto-public:hover {
+      background: rgba(99, 102, 241, 0.3);
+    }
+
+    /* Form Upload Box */
+    .upload-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .upload-box {
+      border: 2px dashed var(--border);
+      border-radius: 14px;
+      padding: 35px 20px;
+      text-align: center;
+      transition: border-color 0.2s;
+    }
+
+    .upload-box:hover {
+      border-color: var(--accent);
+    }
+
+    .file-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--accent);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: background 0.2s;
+    }
+
+    .file-label:hover {
+      background: var(--accent-hover);
+    }
+
+    #file-input { display: none; }
+
+    #file-name {
+      margin-top: 15px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .upload-btn {
+      width: 100%;
+      background: #10b981;
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: opacity 0.2s;
+    }
+
+    .upload-btn:disabled {
+      background: var(--border);
+      color: var(--text-muted);
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="brand">
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+        <h1>ShareMedia</h1>
+      </div>
+      <a href="publik.html" class="btn-goto-public">
+        <i class="fa-solid fa-images"></i> Lihat Galeri Publik
+      </a>
+    </header>
+
+    <div class="upload-card">
+      <div class="upload-box">
+        <label for="file-input" class="file-label">
+          <i class="fa-solid fa-paperclip"></i> Pilih File Media
+        </label>
+        <input type="file" id="file-input" accept="image/*,audio/*,video/*">
+        <div id="file-name">Pilih gambar, MP3, atau MP4 dari perangkatmu</div>
+      </div>
+
+      <button class="upload-btn" id="upload-btn" disabled>
+        <i class="fa-solid fa-upload"></i> Unggah Sekarang
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // MASUKKAN URL DAN KEY SUPABASE KAMU DI SINI
+    const SUPABASE_URL = 'https://ypggmvkgnjeflbkxooot.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlwZ2dtdmtnbmplZmxia3hvb290Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg0MTUwMTMsImV4cCI6MjEwMzk5MTAxM30.KZ6cRJeJEbnvAarR8x9YCU_fjAbGSsIQ1uzOsum_8-4';
+    
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const fileInput = document.getElementById('file-input');
+    const fileName = document.getElementById('file-name');
+    const uploadBtn = document.getElementById('upload-btn');
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length > 0) {
+        fileName.textContent = `File terpilih: ${fileInput.files[0].name}`;
+        uploadBtn.disabled = false;
+      } else {
+        fileName.textContent = 'Pilih gambar, MP3, atau MP4 dari perangkatmu';
+        uploadBtn.disabled = true;
+      }
+    });
+
+    uploadBtn.addEventListener('click', async () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      uploadBtn.disabled = true;
+      uploadBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengunggah...';
+
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+
+      // 1. Upload File ke Storage
+      const { data: storageData, error: storageError } = await supabaseClient
+        .storage
+        .from('media')
+        .upload(filePath, file);
+
+      if (storageError) {
+        alert('Gagal mengunggah file: ' + storageError.message);
+        uploadBtn.disabled = false;
+        uploadBtn.innerHTML = '<i class="fa-solid fa-upload"></i> Unggah Sekarang';
+        return;
+      }
+
+      // 2. Dapatkan Link Publik
+      const { data: publicUrlData } = supabaseClient
+        .storage
+        .from('media')
+        .getPublicUrl(filePath);
+
+      const publicUrl = publicUrlData.publicUrl;
+
+      // 3. Simpan Metadata ke Tabel media_files
+      const { error: dbError } = await supabaseClient
+        .from('media_files')
+        .insert([
+          { file_name: file.name, file_url: publicUrl, file_type: file.type }
+        ]);
+
+      if (dbError) {
+        alert('Gagal menyimpan metadata: ' + dbError.message);
+      } else {
+        alert('File berhasil diunggah!');
+        fileInput.value = '';
+        fileName.textContent = 'Pilih gambar, MP3, atau MP4 dari perangkatmu';
+      }
+
+      uploadBtn.disabled = true;
+      uploadBtn.innerHTML = '<i class="fa-solid fa-upload"></i> Unggah Sekarang';
+    });
+  </script>
+</body>
+</html>
